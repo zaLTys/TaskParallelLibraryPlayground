@@ -1,20 +1,21 @@
 ﻿using Data;
 using System.Diagnostics;
+using static Data.DataStore;
 
 namespace TPLPlayground.Core
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
 
-            RunWithDatastorePrices();
+            await RunWithDatastorePrices();
 
           //  RunWithCancelation2sAndParalelism2();
         }
 
 
-        private static async void RunWithDatastorePrices()
+        private static async Task RunWithDatastorePrices()
         {
             Console.WriteLine($"Running {nameof(RunWithDatastorePrices)}");
             var dataStore = new DataStore();
@@ -28,25 +29,17 @@ namespace TPLPlayground.Core
             var items = dataStore.CreateItemsInParallel(100, CancellationToken.None);
 
             var service = new CalculationService();
-
-            var itemsTask = Task.Factory.StartNew(() =>
+            var progress = new Progress<Item>();
+            progress.ProgressChanged += (_, item) =>
             {
-                Console.WriteLine("Taking care of items");
-                foreach (var item in items)
-                {
-                    Task.Factory.StartNew(() =>
-                    {
-                        Console.WriteLine($"Taking Care Of {item.Id}");
-                        Thread.Sleep(100);
+                Console.WriteLine($"Item id {item.Id}, price {item.Price} progress update");
+            };
 
-                    });
-                }
-                Console.WriteLine("Taking care of items done");
-            });
+            await service.ProcessItems(items, progress);
 
-            await itemsTask;
             Console.WriteLine($"Done {nameof(RunWithDatastorePrices)}");
         }
+
 
 
         private static void RunWithCancelation2sAndParalelism2()
